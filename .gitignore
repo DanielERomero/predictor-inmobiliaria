@@ -1,0 +1,23 @@
+# Datos y notebooks
+*.csv
+*.ipynb
+*.xlsx
+*.xls
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Otros
+.DS_Store
