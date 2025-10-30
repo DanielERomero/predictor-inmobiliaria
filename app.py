@@ -1,10 +1,13 @@
-# CELDA 2: Crear el archivo app.py
+# Crear el archivo app.py mejorado con clasificación HOT/WARM/COLD y valor esperado
+
+app_code = '''# CELDA 2: Crear el archivo app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
 from sklearn.preprocessing import StandardScaler
 import os
+import datetime
 
 # Configuración de la página
 st.set_page_config(
@@ -44,6 +47,36 @@ st.markdown("""
         padding: 15px;
         border-radius: 5px;
         border-left: 5px solid #dc3545;
+    }
+    .hot-lead {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .warm-lead {
+        background: linear-gradient(135deg, #ffd93d 0%, #ffb800 100%);
+        color: #333;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .cold-lead {
+        background: linear-gradient(135deg, #a8dadc 0%, #457b9d 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -88,7 +121,7 @@ st.sidebar.image("https://img.icons8.com/fluency/96/000000/real-estate.png", wid
 st.sidebar.title("📋 Datos del Cliente")
 st.sidebar.markdown("---")
 
-# ⭐⭐⭐ SECCIÓN 1: FACTORES CRÍTICOS (98.6% + 66.8% + 38.8% impacto) ⭐⭐⭐
+# ⭐⭐⭐ SECCIÓN 1: FACTORES CRÍTICOS ⭐⭐⭐
 st.sidebar.markdown("### 🏆 **FACTORES CRÍTICOS**")
 st.sidebar.markdown("*Estos 3 factores determinan el 90% de la decisión de compra*")
 
@@ -112,7 +145,7 @@ visito_lote = st.sidebar.radio(
 
 st.sidebar.markdown("---")
 
-# SECCIÓN 2: INFORMACIÓN FINANCIERA (ratio_reserva 65.3% impacto)
+# SECCIÓN 2: INFORMACIÓN FINANCIERA
 st.sidebar.markdown("### 💰 **INFORMACIÓN FINANCIERA**")
 
 col1, col2 = st.sidebar.columns(2)
@@ -425,54 +458,96 @@ else:
             prediccion = model.predict(processed_data)[0]
             
             # ============================================
+            # 🔥 NUEVO: CLASIFICACIÓN HOT/WARM/COLD
+            # ============================================
+            if probabilidad >= 0.7:
+                lead_type = "🔥 HOT LEAD"
+                lead_class = "hot-lead"
+                prioridad = "MÁXIMA"
+                tiempo_respuesta = "24 horas"
+                color_badge = "#ff6b6b"
+            elif probabilidad >= 0.4:
+                lead_type = "🟡 WARM LEAD"
+                lead_class = "warm-lead"
+                prioridad = "MEDIA"
+                tiempo_respuesta = "3-5 días"
+                color_badge = "#ffd93d"
+            else:
+                lead_type = "❄️ COLD LEAD"
+                lead_class = "cold-lead"
+                prioridad = "BAJA"
+                tiempo_respuesta = "7+ días o descarte"
+                color_badge = "#a8dadc"
+            
+            # ============================================
+            # 💰 NUEVO: CÁLCULO DE VALOR ESPERADO
+            # ============================================
+            # Asumiendo 5% de comisión sobre el precio del lote
+            comision_estimada = lote_precio_total * 0.05
+            valor_esperado = probabilidad * comision_estimada
+            
+            # Clasificar por valor
+            if valor_esperado > 1500:
+                valor_categoria = "💎 ALTO VALOR"
+                valor_color = "success"
+            elif valor_esperado > 800:
+                valor_categoria = "💵 VALOR MEDIO"
+                valor_color = "info"
+            else:
+                valor_categoria = "💸 BAJO VALOR"
+                valor_color = "warning"
+            
+            # ============================================
             # MOSTRAR RESULTADOS
             # ============================================
             
-            # Resultado principal
-            st.markdown("## 🎯 RESULTADO DE LA PREDICCIÓN")
+            # Generar ID único para el lead
+            lead_id = f"LEAD-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
             
-            # Métrica grande
-            col1, col2, col3 = st.columns([2, 1, 1])
+            # Banner de clasificación
+            st.markdown(f'<div class="{lead_class}">{lead_type}</div>', unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Métricas principales
+            col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                if probabilidad >= 0.7:
-                    st.markdown(f"""
-                    <div class="success-box">
-                    <h1 style="color: #28a745; margin: 0;">🎉 {probabilidad*100:.1f}%</h1>
-                    <h3 style="margin: 5px 0;">ALTA PROBABILIDAD DE COMPRA</h3>
-                    <p style="margin: 0;">Este cliente es MUY PROMETEDOR. Priorizar seguimiento.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                elif probabilidad >= 0.4:
-                    st.markdown(f"""
-                    <div class="warning-box">
-                    <h1 style="color: #ffc107; margin: 0;">⚠️ {probabilidad*100:.1f}%</h1>
-                    <h3 style="margin: 5px 0;">PROBABILIDAD MEDIA</h3>
-                    <p style="margin: 0;">Cliente con potencial. Requiere estrategia de seguimiento.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""
-                    <div class="danger-box">
-                    <h1 style="color: #dc3545; margin: 0;">📉 {probabilidad*100:.1f}%</h1>
-                    <h3 style="margin: 5px 0;">BAJA PROBABILIDAD</h3>
-                    <p style="margin: 0;">Cliente de alto riesgo. Revisar factores críticos.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                st.metric(
+                    "Probabilidad de Compra",
+                    f"{probabilidad*100:.1f}%",
+                    help="Probabilidad calculada por el modelo"
+                )
             
             with col2:
-                st.metric("Confianza", f"{probabilidad*100:.1f}%")
-                st.metric("Predicción", "COMPRARÁ" if prediccion == 1 else "NO COMPRARÁ")
+                st.metric(
+                    "💰 Valor Esperado",
+                    f"${valor_esperado:,.0f}",
+                    help=f"Probabilidad × Comisión estimada (${comision_estimada:,.0f})"
+                )
             
             with col3:
-                # Comparación con promedio
-                diferencia = (probabilidad - 0.234) * 100
-                st.metric("vs Promedio", f"{diferencia:+.1f}%", 
-                         delta=f"{diferencia:.1f}%",
-                         help="Comparado con tasa de conversión promedio (23.4%)")
+                st.metric(
+                    "⚡ Prioridad",
+                    prioridad,
+                    help=f"Tiempo de respuesta: {tiempo_respuesta}"
+                )
             
-            # Barra de progreso visual
+            with col4:
+                # Comparación con promedio
+                promedio_historico = 23.4
+                diferencia = probabilidad*100 - promedio_historico
+                st.metric(
+                    "vs Promedio",
+                    f"{promedio_historico}%",
+                    delta=f"{diferencia:+.1f}%",
+                    help="Comparado con tasa de conversión promedio"
+                )
+            
+            # Barra de progreso
             st.progress(float(probabilidad))
+            
+            # Información adicional del lead
+            st.info(f"**ID del Lead:** {lead_id} | **Tiempo de Respuesta:** {tiempo_respuesta} | **Categoría de Valor:** {valor_categoria}")
             
             st.markdown("---")
             
@@ -519,7 +594,7 @@ else:
                 
                 if factores_positivos:
                     for factor, impacto, tipo in factores_positivos:
-                        st.success(f"**{factor}**  \n*Impacto: {impacto}*")
+                        st.success(f"**{factor}**  \\n*Impacto: {impacto}*")
                 else:
                     st.info("No se detectaron factores positivos significativos")
             
@@ -559,9 +634,9 @@ else:
                 if factores_negativos:
                     for factor, impacto, tipo in factores_negativos:
                         if tipo == "error":
-                            st.error(f"**{factor}**  \n*Impacto negativo: {impacto}*")
+                            st.error(f"**{factor}**  \\n*Impacto negativo: {impacto}*")
                         else:
-                            st.warning(f"**{factor}**  \n*Impacto negativo: {impacto}*")
+                            st.warning(f"**{factor}**  \\n*Impacto negativo: {impacto}*")
                 else:
                     st.success("✅ No se detectaron factores de riesgo significativos")
             
@@ -574,22 +649,26 @@ else:
             st.markdown("## 💡 RECOMENDACIONES PARA EL EQUIPO DE MARKETING")
             
             if probabilidad >= 0.7:
-                st.success("""
-                ### 🎉 CLIENTE PRIORITARIO - ACCIÓN INMEDIATA
+                st.success(f"""
+                ### 🎉 {lead_type} - ACCIÓN INMEDIATA
+                
+                **💰 Valor Esperado: ${valor_esperado:,.0f}** ({valor_categoria})
                 
                 **Estrategia recomendada:**
                 1. ✅ **Asignar asesor senior** para cierre rápido
-                2. ✅ **Contacto en las próximas 24 horas**
+                2. ✅ **Contacto en las próximas {tiempo_respuesta}**
                 3. ✅ **Preparar documentación de compra**
                 4. ✅ **Ofrecer facilidades de pago adicionales**
                 5. ✅ **Agendar firma de contrato lo antes posible**
                 
-                **Probabilidad de cierre:** MUY ALTA
+                **Probabilidad de cierre:** MUY ALTA | **Prioridad:** {prioridad}
                 """)
                 
             elif probabilidad >= 0.4:
-                st.warning("""
-                ### ⚠️ CLIENTE CON POTENCIAL - ESTRATEGIA DE SEGUIMIENTO
+                st.warning(f"""
+                ### ⚠️ {lead_type} - ESTRATEGIA DE SEGUIMIENTO
+                
+                **💰 Valor Esperado: ${valor_esperado:,.0f}** ({valor_categoria})
                 
                 **Acciones recomendadas:**
                 """)
@@ -607,12 +686,16 @@ else:
                 if ratio_reserva < 10:
                     st.write("4. 💰 **SUGERIDO:** Negociar aumento de monto de reserva")
                 
-                st.write("5. 📞 **Mantener contacto frecuente** (cada 3-5 días)")
+                st.write(f"5. 📞 **Mantener contacto frecuente** (tiempo de respuesta: {tiempo_respuesta})")
                 st.write("6. 🎁 **Considerar incentivos adicionales** según el caso")
                 
+                st.info(f"**Prioridad:** {prioridad} | **Tiempo de Respuesta:** {tiempo_respuesta}")
+                
             else:
-                st.error("""
-                ### 📉 CLIENTE DE ALTO RIESGO - REVISIÓN NECESARIA
+                st.error(f"""
+                ### 📉 {lead_type} - REVISIÓN NECESARIA
+                
+                **💰 Valor Esperado: ${valor_esperado:,.0f}** ({valor_categoria})
                 
                 **Análisis crítico:**
                 """)
@@ -634,12 +717,14 @@ else:
                 for problema in problemas_criticos:
                     st.write(f"- {problema}")
                 
-                st.markdown("""
+                st.markdown(f"""
                 **Estrategia sugerida:**
                 1. ⚠️ **Evaluar viabilidad** de continuar con este cliente
                 2. ⚠️ **Resolver factores críticos** antes de invertir más recursos
                 3. ⚠️ **Considerar reasignación** de esfuerzos a clientes más prometedores
                 4. ⚠️ Si se continúa: **Plan de acción intensivo** para resolver problemas críticos
+                
+                **Prioridad:** {prioridad} | **Tiempo de Respuesta:** {tiempo_respuesta}
                 """)
             
             st.markdown("---")
@@ -654,6 +739,7 @@ else:
             
             with col1:
                 st.markdown("### 📊 Datos Clave")
+                st.write(f"**ID Lead:** {lead_id}")
                 st.write(f"**Cliente:** {cliente_profesion}, {cliente_edad} años")
                 st.write(f"**Lote:** {proyecto}, {metros_cuadrados}m²")
                 st.write(f"**Precio:** ${lote_precio_total:,}")
@@ -661,19 +747,22 @@ else:
             
             with col2:
                 st.markdown("### ✅ Factores a Favor")
+                st.write(f"**Clasificación:** {lead_type}")
+                st.write(f"**Valor Esperado:** ${valor_esperado:,.0f}")
                 st.write(f"**Título:** {titulo_lote}")
                 st.write(f"**Documentos:** {DOCUMENTOS}")
                 st.write(f"**Visitó lote:** {visito_lote}")
-                st.write(f"**Salario:** ${SALARIO_DECLARADO:,}")
             
             with col3:
                 st.markdown("### 📞 Próximos Pasos")
+                st.write(f"**Prioridad:** {prioridad}")
+                st.write(f"**Responder en:** {tiempo_respuesta}")
                 if probabilidad >= 0.7:
                     st.write("1. ✅ Contactar HOY")
                     st.write("2. ✅ Preparar contrato")
                     st.write("3. ✅ Agendar firma")
                 elif probabilidad >= 0.4:
-                    st.write("1. 📞 Llamar en 48h")
+                    st.write("1. 📞 Llamar en 48-72h")
                     st.write("2. 📄 Revisar docs")
                     st.write("3. 👁️ Agendar visita")
                 else:
@@ -688,3 +777,27 @@ else:
 # Footer
 st.markdown("---")
 st.caption("🎯 Sistema de Predicción de Compras Inmobiliarias | Desarrollado para el Área de Marketing | Precisión: 87.5%")
+'''
+
+# Guardar el archivo
+with open('app.py', 'w', encoding='utf-8') as f:
+    f.write(app_code)
+
+print("✅ Archivo app.py creado exitosamente con las mejoras implementadas!")
+print("\n🔥 NUEVAS FUNCIONALIDADES AGREGADAS:")
+print("\n1. ✅ SISTEMA DE CLASIFICACIÓN HOT/WARM/COLD")
+print("   - 🔥 HOT LEAD (≥70%): Prioridad MÁXIMA, responder en 24h")
+print("   - 🟡 WARM LEAD (40-70%): Prioridad MEDIA, responder en 3-5 días")
+print("   - ❄️ COLD LEAD (<40%): Prioridad BAJA, responder en 7+ días")
+print("\n2. ✅ CÁLCULO DE VALOR ESPERADO DEL LEAD")
+print("   - Fórmula: Probabilidad × Comisión estimada (5% del precio)")
+print("   - Clasificación: 💎 Alto Valor (>$1,500) | 💵 Medio ($800-$1,500) | 💸 Bajo (<$800)")
+print("   - Ayuda a priorizar leads por ROI potencial")
+print("\n3. ✅ MEJORAS VISUALES")
+print("   - Banner colorido según clasificación del lead")
+print("   - Métricas destacadas en la parte superior")
+print("   - Comparación con promedio histórico")
+print("\n📝 Para usar la app:")
+print("   1. Sube este archivo a tu repositorio de GitHub")
+print("   2. Streamlit Cloud lo detectará automáticamente")
+print("   3. ¡Listo para usar por el equipo de marketing!")
