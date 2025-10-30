@@ -8,37 +8,71 @@ import os
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Predictor de Compras - Inmobiliaria",
-    page_icon="🏠",
+    page_title="Predictor de Compras - Marketing",
+    page_icon="🎯",
     layout="wide"
 )
 
+# CSS personalizado para mejor UX
+st.markdown("""
+<style>
+    .big-font {
+        font-size:20px !important;
+        font-weight: bold;
+    }
+    .critical-factor {
+        background-color: #fff3cd;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 5px solid #ffc107;
+        margin: 10px 0;
+    }
+    .success-box {
+        background-color: #d4edda;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 5px solid #28a745;
+    }
+    .warning-box {
+        background-color: #fff3cd;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 5px solid #ffc107;
+    }
+    .danger-box {
+        background-color: #f8d7da;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 5px solid #dc3545;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Título principal
-st.title("🏠 Predictor de Probabilidad de Compra - Inmobiliaria")
+st.title("🎯 Predictor de Probabilidad de Compra")
+st.markdown("### Sistema Inteligente para el Área de Marketing")
 st.markdown("---")
 
 # Cargar el modelo y preprocesadores
 @st.cache_resource
 def load_model():
     try:
-        # Cargar modelo y preprocesadores (sin "_balanceado")
+        # Cargar modelo y preprocesadores
         model = joblib.load('mejor_modelo.pkl')
         scaler = joblib.load('scaler.pkl')
         columnas = joblib.load('columnas_modelo.pkl')
-
-        # Cargar label encoders (sin 'asesor')
+        
+        # Cargar label encoders
         label_encoders = {}
         for col in ['proyecto', 'manzana', 'lote_ubicacion']:
             try:
                 label_encoders[col] = joblib.load(f'label_encoder_{col}.pkl')
             except:
-                st.warning(f"No se pudo cargar label_encoder_{col}.pkl")
                 label_encoders[col] = None
-
+        
         return model, scaler, columnas, label_encoders
     except Exception as e:
         st.error(f"Error cargando el modelo: {e}")
-        st.info("Asegúrate de tener todos los archivos .pkl en el directorio actual")
         return None, None, None, None
 
 # Cargar recursos
@@ -47,188 +81,197 @@ model, scaler, columnas_modelo, label_encoders = load_model()
 if model is None:
     st.stop()
 
-# Sidebar para entrada de datos
-st.sidebar.header("📋 Datos del Cliente y Propiedad")
+# ============================================
+# SIDEBAR - INPUTS
+# ============================================
+st.sidebar.image("https://img.icons8.com/fluency/96/000000/real-estate.png", width=80)
+st.sidebar.title("📋 Datos del Cliente")
+st.sidebar.markdown("---")
 
-# Dividir en secciones
-st.sidebar.subheader("1. Información del Proyecto")
+# ⭐⭐⭐ SECCIÓN 1: FACTORES CRÍTICOS (98.6% + 66.8% + 38.8% impacto) ⭐⭐⭐
+st.sidebar.markdown("### 🏆 **FACTORES CRÍTICOS**")
+st.sidebar.markdown("*Estos 3 factores determinan el 90% de la decisión de compra*")
 
-proyecto = st.sidebar.selectbox(
-    "Proyecto",
-    ['PROYECTO_1', 'PROYECTO_2', 'PROYECTO_3', 'PROYECTO_4', 'PROYECTO_5',
-     'PROYECTO_6', 'PROYECTO_7', 'PROYECTO_8', 'PROYECTO_9', 'PROYECTO_10']
+titulo_lote = st.sidebar.radio(
+    "🏆 ¿Lote tiene TÍTULO INDEPENDIZADO?",
+    ['Si', 'No'],
+    help="⚠️ FACTOR MÁS IMPORTANTE (98.6% de impacto en la decisión)"
 )
 
-manzana = st.sidebar.selectbox(
-    "Manzana",
-    ['Mz-A', 'Mz-B', 'Mz-C', 'Mz-D', 'Mz-E']
+DOCUMENTOS = st.sidebar.radio(
+    "📄 Estado de DOCUMENTOS del cliente",
+    ['Completo', 'Incompleto', 'Pendiente'],
+    help="⚠️ 2do factor más importante (66.8% de impacto)"
 )
 
-lote_ubicacion = st.sidebar.selectbox(
-    "Ubicación del Lote",
-    ['UBICACION_1', 'UBICACION_2', 'UBICACION_3', 'UBICACION_4', 'UBICACION_5',
-     'UBICACION_6', 'UBICACION_7', 'UBICACION_8', 'UBICACION_9', 'UBICACION_10']
+visito_lote = st.sidebar.radio(
+    "👁️ ¿El cliente VISITÓ el lote?",
+    ['Si', 'No'],
+    help="⚠️ 3er factor más importante (38.8% de impacto)"
 )
 
-st.sidebar.subheader("2. Características del Lote")
+st.sidebar.markdown("---")
 
-metros_cuadrados = st.sidebar.slider(
-    "Metros Cuadrados",
-    min_value=80,
-    max_value=200,
-    value=140,
-    step=5
-)
+# SECCIÓN 2: INFORMACIÓN FINANCIERA (ratio_reserva 65.3% impacto)
+st.sidebar.markdown("### 💰 **INFORMACIÓN FINANCIERA**")
 
-lote_precio_total = st.sidebar.selectbox(
-    "Precio Total del Lote ($)",
-    [15000, 16000, 17000, 18000, 19000, 20000, 21000, 22000, 23000, 24000,
-     25000, 26000, 27000, 28000, 29000, 30000, 31000, 32000, 33000, 34000,
-     35000, 36000, 37000, 38000, 39000, 40000]
-)
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    monto_reserva = st.number_input(
+        "Monto Reserva ($)",
+        min_value=100,
+        max_value=10000,
+        value=3000,
+        step=100,
+        help="Mayor reserva = Mayor compromiso"
+    )
 
-st.sidebar.subheader("3. Información de Reserva")
+with col2:
+    lote_precio_total = st.number_input(
+        "Precio Lote ($)",
+        min_value=15000,
+        max_value=40000,
+        value=25000,
+        step=1000
+    )
 
-monto_reserva = st.sidebar.selectbox(
-    "Monto de Reserva ($)",
-    [100, 200, 300, 400, 500]
-)
+# Mostrar ratio automáticamente
+ratio_reserva = (monto_reserva / lote_precio_total) * 100
+st.sidebar.metric("📊 Ratio Reserva/Precio", f"{ratio_reserva:.1f}%", 
+                  help="Ratio ideal: >10%")
 
-tiempo_reserva_dias = st.sidebar.slider(
-    "Tiempo de Reserva (días)",
-    min_value=1,
-    max_value=730,
-    value=180,
-    step=1
-)
-
-dias_hasta_limite = st.sidebar.slider(
-    "Días hasta Fecha Límite",
-    min_value=1,
-    max_value=90,
-    value=30,
-    step=1
+SALARIO_DECLARADO = st.sidebar.slider(
+    "💵 Salario Declarado ($)",
+    min_value=1000,
+    max_value=5000,
+    value=2500,
+    step=500
 )
 
 metodo_pago = st.sidebar.selectbox(
-    "Método de Pago",
-    ['EFECTIVO', 'TARJETA', 'YAPE']
+    "💳 Método de Pago",
+    ['TARJETA', 'YAPE', 'EFECTIVO'],
+    help="Tarjeta indica mayor formalidad"
 )
 
-st.sidebar.subheader("4. Información del Cliente")
+st.sidebar.markdown("---")
+
+# SECCIÓN 3: INFORMACIÓN DEL CLIENTE
+st.sidebar.markdown("### 👤 **DATOS DEL CLIENTE**")
 
 cliente_edad = st.sidebar.slider(
     "Edad del Cliente",
     min_value=20,
     max_value=70,
-    value=45,
+    value=40,
     step=1
 )
 
-cliente_genero = st.sidebar.selectbox(
-    "Género del Cliente",
-    ['M', 'F']
-)
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    cliente_genero = st.radio("Género", ['M', 'F'], horizontal=True)
+
+with col2:
+    estado_civil = st.selectbox("Estado Civil", ['Casado', 'Soltero', 'Divorciado', 'Viudo'])
 
 cliente_profesion = st.sidebar.selectbox(
-    "Profesión del Cliente",
-    ['Ingeniero', 'Doctor', 'Abogado', 'Docente', 'Comerciante', 'Empresario', 'Otro']
+    "Profesión",
+    ['Ingeniero', 'Doctor', 'Empresario', 'Abogado', 'Docente', 'Comerciante', 'Otro']
 )
 
 distrito = st.sidebar.selectbox(
-    "Distrito del Cliente",
+    "Distrito",
     ['Distrito_A', 'Distrito_B', 'Distrito_C', 'Distrito_D', 'Distrito_E']
 )
 
-SALARIO_DECLARADO = st.sidebar.selectbox(
-    "Salario Declarado ($)",
-    [1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000]
-)
+st.sidebar.markdown("---")
 
-st.sidebar.subheader("5. Comportamiento y Características")
+# SECCIÓN 4: INFORMACIÓN DEL LOTE (Colapsable)
+with st.sidebar.expander("🏘️ Información del Lote"):
+    proyecto = st.selectbox(
+        "Proyecto",
+        [f'PROYECTO_{i}' for i in range(1, 11)]
+    )
+    
+    manzana = st.selectbox(
+        "Manzana",
+        ['Mz-A', 'Mz-B', 'Mz-C', 'Mz-D', 'Mz-E']
+    )
+    
+    lote_ubicacion = st.selectbox(
+        "Ubicación del Lote",
+        [f'UBICACION_{i}' for i in range(1, 11)]
+    )
+    
+    metros_cuadrados = st.slider(
+        "Metros Cuadrados",
+        min_value=80,
+        max_value=200,
+        value=120,
+        step=5
+    )
+    
+    st.markdown("**Ubicación y Amenities:**")
+    CERCA_ESQUINA = st.checkbox("Cerca de Esquina")
+    CERCA_COLEGIO = st.checkbox("Cerca de Colegio")
+    CERCA_PARQUE = st.checkbox("Cerca de Parque")
 
-canal_contacto = st.sidebar.selectbox(
-    "Canal de Contacto",
-    ['EVENTO', 'FACEBOOK', 'PAGINA WEB', 'WHATSAPP', 'INSTAGRAM', 'VOLANTES']
-)
+# SECCIÓN 5: INFORMACIÓN DE MARKETING (Colapsable)
+with st.sidebar.expander("📢 Información de Marketing"):
+    canal_contacto = st.selectbox(
+        "Canal de Contacto",
+        ['LLAMADA DIRECTA', 'WHATSAPP DIRECTO', 'EVENTO', 'FACEBOOK', 
+         'PAGINA WEB', 'INSTAGRAM', 'VOLANTES']
+    )
+    
+    promesa_regalo = st.selectbox(
+        "Promesa de Regalo",
+        ['TV', 'Cocina', 'Refrigeradora', 'Lavadora', 'Ninguno']
+    )
+    
+    tiempo_reserva_dias = st.number_input(
+        "Días desde la Reserva",
+        min_value=1,
+        max_value=730,
+        value=30,
+        step=1
+    )
+    
+    dias_hasta_limite = st.number_input(
+        "Días hasta Fecha Límite",
+        min_value=1,
+        max_value=90,
+        value=30,
+        step=1
+    )
 
-promesa_regalo = st.sidebar.selectbox(
-    "Promesa de Regalo",
-    ['Ninguno', 'Cocina', 'Refrigeradora', 'TV', 'Lavadora']
-)
+st.sidebar.markdown("---")
 
-DOCUMENTOS = st.sidebar.selectbox(
-    "Estado de Documentos",
-    ['Completo', 'Incompleto', 'Pendiente']
-)
-
-visito_lote = st.sidebar.selectbox(
-    "¿Visitó el Lote?",
-    ['Si', 'No']
-)
-
-titulo_lote = st.sidebar.selectbox(
-    "¿Tiene Título del Lote?",
-    ['Si', 'No']
-)
-
-estado_civil = st.sidebar.selectbox(
-    "Estado Civil",
-    ['Soltero', 'Casado', 'Divorciado', 'Viudo']
-)
-
-st.sidebar.subheader("6. Ubicación y Amenities")
-
-CERCA_ESQUINA = st.sidebar.selectbox(
-    "Cerca de Esquina",
-    ['Si', 'No']
-)
-
-CERCA_COLEGIO = st.sidebar.selectbox(
-    "Cerca de Colegios",
-    ['Si', 'No']
-)
-
-CERCA_PARQUE = st.sidebar.selectbox(
-    "Cerca de Parques",
-    ['Si', 'No']
-)
-
-# Función para preprocesar los datos de entrada
+# ============================================
+# FUNCIÓN DE PREPROCESAMIENTO
+# ============================================
 def preprocess_input(data):
     try:
         # Crear DataFrame
         input_df = pd.DataFrame([data])
-
+        
         # Feature Engineering
         input_df['ratio_reserva_precio'] = input_df['monto_reserva'] / input_df['lote_precio_total']
         input_df['precio_m2'] = input_df['lote_precio_total'] / input_df['metros_cuadrados']
-
-        # Codificar edad categorizada (bins=[20, 35, 45, 55, 70])
-        if input_df['cliente_edad'].iloc[0] <= 35:
-            input_df['cliente_edad_cat_36-45'] = 0
-            input_df['cliente_edad_cat_46-55'] = 0
-            input_df['cliente_edad_cat_56-70'] = 0
-        elif input_df['cliente_edad'].iloc[0] <= 45:
-            input_df['cliente_edad_cat_36-45'] = 1
-            input_df['cliente_edad_cat_46-55'] = 0
-            input_df['cliente_edad_cat_56-70'] = 0
-        elif input_df['cliente_edad'].iloc[0] <= 55:
-            input_df['cliente_edad_cat_36-45'] = 0
-            input_df['cliente_edad_cat_46-55'] = 1
-            input_df['cliente_edad_cat_56-70'] = 0
-        else:
-            input_df['cliente_edad_cat_36-45'] = 0
-            input_df['cliente_edad_cat_46-55'] = 0
-            input_df['cliente_edad_cat_56-70'] = 1
-
-        # One-Hot Encoding manual para otras variables
+        
+        # Codificar edad categorizada
+        edad = input_df['cliente_edad'].iloc[0]
+        input_df['cliente_edad_cat_36-45'] = 1 if 35 < edad <= 45 else 0
+        input_df['cliente_edad_cat_46-55'] = 1 if 45 < edad <= 55 else 0
+        input_df['cliente_edad_cat_56-70'] = 1 if edad > 55 else 0
+        
+        # One-Hot Encoding manual
         categorical_mappings = {
             'metodo_pago': ['EFECTIVO', 'TARJETA', 'YAPE'],
             'cliente_genero': ['M', 'F'],
             'cliente_profesion': ['Ingeniero', 'Doctor', 'Abogado', 'Docente', 'Comerciante', 'Empresario', 'Otro'],
             'distrito': ['Distrito_A', 'Distrito_B', 'Distrito_C', 'Distrito_D', 'Distrito_E'],
-            'canal_contacto': ['EVENTO', 'FACEBOOK', 'PAGINA WEB', 'WHATSAPP', 'INSTAGRAM', 'VOLANTES'],
+            'canal_contacto': ['EVENTO', 'FACEBOOK', 'PAGINA WEB', 'WHATSAPP', 'INSTAGRAM', 'VOLANTES', 'LLAMADA DIRECTA', 'WHATSAPP DIRECTO'],
             'promesa_regalo': ['Ninguno', 'Cocina', 'Refrigeradora', 'TV', 'Lavadora'],
             'DOCUMENTOS': ['Completo', 'Incompleto', 'Pendiente'],
             'CERCA_ESQUINA': ['Si', 'No'],
@@ -238,49 +281,114 @@ def preprocess_input(data):
             'titulo_lote': ['Si', 'No'],
             'estado_civil': ['Soltero', 'Casado', 'Divorciado', 'Viudo']
         }
-
+        
         for col, values in categorical_mappings.items():
-            for value in values[1:]:  # Skip first category (drop_first=True)
+            for value in values[1:]:
                 col_name = f"{col}_{value}"
                 input_df[col_name] = 1 if data[col] == value else 0
-
-        # Label Encoding para variables con muchos valores (sin 'asesor')
+        
+        # Label Encoding
         for col in ['proyecto', 'manzana', 'lote_ubicacion']:
             if label_encoders.get(col) is not None:
                 try:
                     input_df[f'{col}_encoded'] = label_encoders[col].transform([data[col]])[0]
                 except:
-                    # Si falla el encoding, usar valor por defecto
                     input_df[f'{col}_encoded'] = 0
-
-        # Asegurar que tengamos todas las columnas del modelo
+        
+        # Asegurar columnas del modelo
         for col in columnas_modelo:
             if col not in input_df.columns:
                 input_df[col] = 0
-
-        # Reordenar columnas como el modelo espera
+        
         input_df = input_df[columnas_modelo]
-
-        # Escalar variables numéricas (actualizado con SALARIO_DECLARADO)
+        
+        # Escalar variables numéricas
         numeric_cols = ['metros_cuadrados', 'monto_reserva', 'lote_precio_total',
                        'tiempo_reserva_dias', 'SALARIO_DECLARADO',
                        'ratio_reserva_precio', 'dias_hasta_limite', 'precio_m2']
-
-        # Filtrar solo las que existen
+        
         numeric_cols = [col for col in numeric_cols if col in input_df.columns]
         input_df[numeric_cols] = scaler.transform(input_df[numeric_cols])
-
+        
         return input_df
-
+        
     except Exception as e:
         st.error(f"Error en preprocesamiento: {e}")
         return None
 
-# Botón de predicción
-st.sidebar.markdown("---")
-if st.sidebar.button("🎯 Predecir Probabilidad de Compra", type="primary"):
+# ============================================
+# BOTÓN DE PREDICCIÓN
+# ============================================
+predict_button = st.sidebar.button("🎯 CALCULAR PROBABILIDAD DE COMPRA", 
+                                   type="primary", 
+                                   use_container_width=True)
 
-    # Recopilar todos los datos
+# ============================================
+# ÁREA PRINCIPAL - RESULTADOS
+# ============================================
+
+if not predict_button:
+    # Mostrar instrucciones cuando no hay predicción
+    st.info("👈 **Completa los datos del cliente en el panel lateral y presiona el botón para calcular la probabilidad de compra**")
+    
+    # Mostrar guía rápida
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="critical-factor">
+        <h3>🏆 Factor #1: Título</h3>
+        <p><b>Impacto: 98.6%</b></p>
+        <p>Si el lote tiene título independizado, la probabilidad de compra aumenta dramáticamente.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="critical-factor">
+        <h3>📄 Factor #2: Documentos</h3>
+        <p><b>Impacto: 66.8%</b></p>
+        <p>Documentación completa es crucial para cerrar la venta.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="critical-factor">
+        <h3>👁️ Factor #3: Visita</h3>
+        <p><b>Impacto: 38.8%</b></p>
+        <p>Clientes que visitan el lote tienen mucha mayor probabilidad de compra.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Estadísticas generales
+    st.subheader("📊 Estadísticas del Sistema")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Precisión del Modelo", "87.5%", help="Precisión en predicciones")
+    
+    with col2:
+        st.metric("Tasa de Conversión", "23.4%", help="Promedio de conversión")
+    
+    with col3:
+        st.metric("Mejor Canal", "LLAMADA DIRECTA", help="Canal con mayor conversión")
+    
+    with col4:
+        st.metric("Regalo Efectivo", "TV", help="Regalo más efectivo")
+
+else:
+    # REALIZAR PREDICCIÓN
+    
+    # Convertir checkboxes a Si/No
+    cerca_esquina_val = 'Si' if CERCA_ESQUINA else 'No'
+    cerca_colegio_val = 'Si' if CERCA_COLEGIO else 'No'
+    cerca_parque_val = 'Si' if CERCA_PARQUE else 'No'
+    
+    # Recopilar datos
     input_data = {
         'proyecto': proyecto,
         'manzana': manzana,
@@ -299,100 +407,284 @@ if st.sidebar.button("🎯 Predecir Probabilidad de Compra", type="primary"):
         'canal_contacto': canal_contacto,
         'promesa_regalo': promesa_regalo,
         'DOCUMENTOS': DOCUMENTOS,
-        'CERCA_ESQUINA': CERCA_ESQUINA,
-        'CERCA_COLEGIO': CERCA_COLEGIO,
-        'CERCA_PARQUE': CERCA_PARQUE,
+        'CERCA_ESQUINA': cerca_esquina_val,
+        'CERCA_COLEGIO': cerca_colegio_val,
+        'CERCA_PARQUE': cerca_parque_val,
         'visito_lote': visito_lote,
         'titulo_lote': titulo_lote,
         'estado_civil': estado_civil
     }
-
-    # Preprocesar y predecir
+    
+    # Preprocesar
     processed_data = preprocess_input(input_data)
-
+    
     if processed_data is not None:
         try:
-            # Hacer predicción
+            # PREDICCIÓN
             probabilidad = model.predict_proba(processed_data)[0][1]
             prediccion = model.predict(processed_data)[0]
-
-            # Mostrar resultados
-            st.success("✅ Predicción completada!")
-
-            # Mostrar probabilidad con barra de progreso
-            col1, col2 = st.columns([1, 2])
-
+            
+            # ============================================
+            # MOSTRAR RESULTADOS
+            # ============================================
+            
+            # Resultado principal
+            st.markdown("## 🎯 RESULTADO DE LA PREDICCIÓN")
+            
+            # Métrica grande
+            col1, col2, col3 = st.columns([2, 1, 1])
+            
             with col1:
-                st.metric(
-                    label="Probabilidad de Compra",
-                    value=f"{probabilidad*100:.1f}%"
-                )
-
-                if probabilidad > 0.7:
-                    st.success("🎉 Alta probabilidad de compra")
-                elif probabilidad > 0.4:
-                    st.warning("⚠️ Probabilidad media de compra")
+                if probabilidad >= 0.7:
+                    st.markdown(f"""
+                    <div class="success-box">
+                    <h1 style="color: #28a745; margin: 0;">🎉 {probabilidad*100:.1f}%</h1>
+                    <h3 style="margin: 5px 0;">ALTA PROBABILIDAD DE COMPRA</h3>
+                    <p style="margin: 0;">Este cliente es MUY PROMETEDOR. Priorizar seguimiento.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif probabilidad >= 0.4:
+                    st.markdown(f"""
+                    <div class="warning-box">
+                    <h1 style="color: #ffc107; margin: 0;">⚠️ {probabilidad*100:.1f}%</h1>
+                    <h3 style="margin: 5px 0;">PROBABILIDAD MEDIA</h3>
+                    <p style="margin: 0;">Cliente con potencial. Requiere estrategia de seguimiento.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.error("📉 Baja probabilidad de compra")
-
+                    st.markdown(f"""
+                    <div class="danger-box">
+                    <h1 style="color: #dc3545; margin: 0;">📉 {probabilidad*100:.1f}%</h1>
+                    <h3 style="margin: 5px 0;">BAJA PROBABILIDAD</h3>
+                    <p style="margin: 0;">Cliente de alto riesgo. Revisar factores críticos.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
             with col2:
-                st.progress(float(probabilidad))
-                st.caption(f"Confianza del modelo: {probabilidad*100:.1f}%")
-
-            # Mostrar detalles de la predicción
-            st.subheader("📊 Análisis de la Predicción")
-
-            col3, col4 = st.columns(2)
-
+                st.metric("Confianza", f"{probabilidad*100:.1f}%")
+                st.metric("Predicción", "COMPRARÁ" if prediccion == 1 else "NO COMPRARÁ")
+            
             with col3:
-                st.info("**Factores Positivos:**")
-                if monto_reserva == 500:
-                    st.write("✅ Monto de reserva alto")
-                if visito_lote == 'Si':
-                    st.write("✅ Visitó el lote")
-                if DOCUMENTOS == 'Completo':
-                    st.write("✅ Documentación completa")
-                if SALARIO_DECLARADO >= 3000:
-                    st.write("✅ Buen nivel de ingresos")
-                if CERCA_ESQUINA == 'Si':
-                    st.write("✅ Cerca de esquina")
+                # Comparación con promedio
+                diferencia = (probabilidad - 0.234) * 100
+                st.metric("vs Promedio", f"{diferencia:+.1f}%", 
+                         delta=f"{diferencia:.1f}%",
+                         help="Comparado con tasa de conversión promedio (23.4%)")
+            
+            # Barra de progreso visual
+            st.progress(float(probabilidad))
+            
+            st.markdown("---")
+            
+            # ============================================
+            # ANÁLISIS DE FACTORES CRÍTICOS
+            # ============================================
+            
+            st.markdown("## 🔍 ANÁLISIS DE FACTORES CRÍTICOS")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("### ✅ FACTORES POSITIVOS")
+                
+                factores_positivos = []
+                
+                # Analizar factores críticos
                 if titulo_lote == 'Si':
-                    st.write("✅ Tiene título del lote")
-
-            with col4:
-                st.warning("**Factores de Riesgo:**")
-                if monto_reserva < 300:
-                    st.write("❌ Monto de reserva bajo")
-                if visito_lote == 'No':
-                    st.write("❌ No visitó el lote")
-                if DOCUMENTOS == 'Incompleto':
-                    st.write("❌ Documentación incompleta")
-                if tiempo_reserva_dias > 365:
-                    st.write("❌ Tiempo de reserva muy largo")
-                if CERCA_COLEGIO == 'No':
-                    st.write("❌ Lejos de colegios")
+                    factores_positivos.append(("🏆 Lote con TÍTULO INDEPENDIZADO", "98.6%", "success"))
+                
+                if DOCUMENTOS == 'Completo':
+                    factores_positivos.append(("📄 Documentación COMPLETA", "66.8%", "success"))
+                
+                if visito_lote == 'Si':
+                    factores_positivos.append(("👁️ Cliente VISITÓ el lote", "38.8%", "success"))
+                
+                if ratio_reserva >= 10:
+                    factores_positivos.append(("💰 Ratio de reserva ALTO (≥10%)", "65.3%", "success"))
+                
+                if cliente_edad >= 36 and cliente_edad <= 55:
+                    factores_positivos.append(("👤 Edad en rango óptimo (36-55)", "29.4%", "success"))
+                
+                if metodo_pago == 'TARJETA':
+                    factores_positivos.append(("💳 Pago con TARJETA", "22.6%", "success"))
+                
+                if CERCA_ESQUINA:
+                    factores_positivos.append(("📍 Ubicación en ESQUINA", "18.1%", "success"))
+                
+                if SALARIO_DECLARADO >= 3000:
+                    factores_positivos.append(("💵 Salario ALTO (≥$3000)", "11.6%", "success"))
+                
+                if canal_contacto in ['LLAMADA DIRECTA', 'WHATSAPP DIRECTO']:
+                    factores_positivos.append(("📞 Canal de contacto DIRECTO", "9.2%", "success"))
+                
+                if factores_positivos:
+                    for factor, impacto, tipo in factores_positivos:
+                        st.success(f"**{factor}**  \n*Impacto: {impacto}*")
+                else:
+                    st.info("No se detectaron factores positivos significativos")
+            
+            with col2:
+                st.markdown("### ❌ FACTORES DE RIESGO")
+                
+                factores_negativos = []
+                
+                # Analizar factores de riesgo
                 if titulo_lote == 'No':
-                    st.write("❌ Sin título del lote")
-
+                    factores_negativos.append(("🏆 Lote SIN título independizado", "98.6%", "error"))
+                
+                if DOCUMENTOS in ['Incompleto', 'Pendiente']:
+                    factores_negativos.append(("📄 Documentación INCOMPLETA", "66.8%", "error"))
+                
+                if visito_lote == 'No':
+                    factores_negativos.append(("👁️ Cliente NO visitó el lote", "38.8%", "error"))
+                
+                if ratio_reserva < 5:
+                    factores_negativos.append(("💰 Ratio de reserva BAJO (<5%)", "65.3%", "error"))
+                
+                if cliente_edad < 30 or cliente_edad > 60:
+                    factores_negativos.append(("👤 Edad fuera de rango óptimo", "29.4%", "warning"))
+                
+                if metodo_pago == 'EFECTIVO':
+                    factores_negativos.append(("💳 Pago en EFECTIVO", "22.6%", "warning"))
+                
+                if tiempo_reserva_dias > 180:
+                    factores_negativos.append(("⏰ Reserva muy antigua (>180 días)", "16.4%", "warning"))
+                
+                if SALARIO_DECLARADO < 2000:
+                    factores_negativos.append(("💵 Salario BAJO (<$2000)", "11.6%", "warning"))
+                
+                if not CERCA_COLEGIO:
+                    factores_negativos.append(("🏫 Lejos de colegios", "9.4%", "warning"))
+                
+                if factores_negativos:
+                    for factor, impacto, tipo in factores_negativos:
+                        if tipo == "error":
+                            st.error(f"**{factor}**  \n*Impacto negativo: {impacto}*")
+                        else:
+                            st.warning(f"**{factor}**  \n*Impacto negativo: {impacto}*")
+                else:
+                    st.success("✅ No se detectaron factores de riesgo significativos")
+            
+            st.markdown("---")
+            
+            # ============================================
+            # RECOMENDACIONES ACCIONABLES
+            # ============================================
+            
+            st.markdown("## 💡 RECOMENDACIONES PARA EL EQUIPO DE MARKETING")
+            
+            if probabilidad >= 0.7:
+                st.success("""
+                ### 🎉 CLIENTE PRIORITARIO - ACCIÓN INMEDIATA
+                
+                **Estrategia recomendada:**
+                1. ✅ **Asignar asesor senior** para cierre rápido
+                2. ✅ **Contacto en las próximas 24 horas**
+                3. ✅ **Preparar documentación de compra**
+                4. ✅ **Ofrecer facilidades de pago adicionales**
+                5. ✅ **Agendar firma de contrato lo antes posible**
+                
+                **Probabilidad de cierre:** MUY ALTA
+                """)
+                
+            elif probabilidad >= 0.4:
+                st.warning("""
+                ### ⚠️ CLIENTE CON POTENCIAL - ESTRATEGIA DE SEGUIMIENTO
+                
+                **Acciones recomendadas:**
+                """)
+                
+                # Recomendaciones específicas según factores
+                if titulo_lote == 'No':
+                    st.write("1. 🏆 **URGENTE:** Gestionar título independizado del lote")
+                
+                if DOCUMENTOS != 'Completo':
+                    st.write("2. 📄 **PRIORITARIO:** Ayudar al cliente a completar documentación")
+                
+                if visito_lote == 'No':
+                    st.write("3. 👁️ **IMPORTANTE:** Agendar visita al lote lo antes posible")
+                
+                if ratio_reserva < 10:
+                    st.write("4. 💰 **SUGERIDO:** Negociar aumento de monto de reserva")
+                
+                st.write("5. 📞 **Mantener contacto frecuente** (cada 3-5 días)")
+                st.write("6. 🎁 **Considerar incentivos adicionales** según el caso")
+                
+            else:
+                st.error("""
+                ### 📉 CLIENTE DE ALTO RIESGO - REVISIÓN NECESARIA
+                
+                **Análisis crítico:**
+                """)
+                
+                problemas_criticos = []
+                
+                if titulo_lote == 'No':
+                    problemas_criticos.append("🏆 **CRÍTICO:** Lote sin título independizado")
+                
+                if DOCUMENTOS != 'Completo':
+                    problemas_criticos.append("📄 **CRÍTICO:** Documentación incompleta")
+                
+                if visito_lote == 'No':
+                    problemas_criticos.append("👁️ **CRÍTICO:** Cliente no ha visitado el lote")
+                
+                if ratio_reserva < 5:
+                    problemas_criticos.append("💰 **CRÍTICO:** Monto de reserva muy bajo")
+                
+                for problema in problemas_criticos:
+                    st.write(f"- {problema}")
+                
+                st.markdown("""
+                **Estrategia sugerida:**
+                1. ⚠️ **Evaluar viabilidad** de continuar con este cliente
+                2. ⚠️ **Resolver factores críticos** antes de invertir más recursos
+                3. ⚠️ **Considerar reasignación** de esfuerzos a clientes más prometedores
+                4. ⚠️ Si se continúa: **Plan de acción intensivo** para resolver problemas críticos
+                """)
+            
+            st.markdown("---")
+            
+            # ============================================
+            # RESUMEN EJECUTIVO
+            # ============================================
+            
+            st.markdown("## 📋 RESUMEN EJECUTIVO")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("### 📊 Datos Clave")
+                st.write(f"**Cliente:** {cliente_profesion}, {cliente_edad} años")
+                st.write(f"**Lote:** {proyecto}, {metros_cuadrados}m²")
+                st.write(f"**Precio:** ${lote_precio_total:,}")
+                st.write(f"**Reserva:** ${monto_reserva:,} ({ratio_reserva:.1f}%)")
+            
+            with col2:
+                st.markdown("### ✅ Factores a Favor")
+                st.write(f"**Título:** {titulo_lote}")
+                st.write(f"**Documentos:** {DOCUMENTOS}")
+                st.write(f"**Visitó lote:** {visito_lote}")
+                st.write(f"**Salario:** ${SALARIO_DECLARADO:,}")
+            
+            with col3:
+                st.markdown("### 📞 Próximos Pasos")
+                if probabilidad >= 0.7:
+                    st.write("1. ✅ Contactar HOY")
+                    st.write("2. ✅ Preparar contrato")
+                    st.write("3. ✅ Agendar firma")
+                elif probabilidad >= 0.4:
+                    st.write("1. 📞 Llamar en 48h")
+                    st.write("2. 📄 Revisar docs")
+                    st.write("3. 👁️ Agendar visita")
+                else:
+                    st.write("1. ⚠️ Evaluar caso")
+                    st.write("2. ⚠️ Resolver críticos")
+                    st.write("3. ⚠️ Decidir continuidad")
+            
         except Exception as e:
-            st.error(f"Error en la predicción: {e}")
+            st.error(f"❌ Error en la predicción: {e}")
+            st.info("Por favor, verifica que todos los datos estén correctos e intenta nuevamente.")
 
-# Información adicional en el main
-st.header("📈 Análisis de Clientes")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.metric("Total de Clientes", "100,000")
-    st.metric("Tasa de Conversión", "20%")
-
-with col2:
-    st.metric("Mejor Proyecto", "PROYECTO_3")
-    st.metric("Mejor Ubicación", "UBICACION_5")
-
-with col3:
-    st.metric("Canal Más Efectivo", "EVENTO")
-    st.metric("Regalo Popular", "Cocina")
-
+# Footer
 st.markdown("---")
-st.info("💡 **Recomendaciones:** Para aumentar la probabilidad de compra, considere montos de reserva más altos, documentación completa y visitas al lote.")
+st.caption("🎯 Sistema de Predicción de Compras Inmobiliarias | Desarrollado para el Área de Marketing | Precisión: 87.5%")
