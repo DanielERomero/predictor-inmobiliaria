@@ -1,6 +1,6 @@
 # Crear el archivo app.py mejorado con clasificación HOT/WARM/COLD y valor esperado
 
-app_code = '''# CELDA 2: Crear el archivo app.py
+# CELDA 2: Crear el archivo app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
